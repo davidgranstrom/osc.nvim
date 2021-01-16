@@ -1,16 +1,42 @@
---------------------------------
--- UDP client/server for Neovim.
+--[[
+MIT License
+
+Copyright (c) 2021 David Granström
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+]]
+
+--------------------------------------------
+-- UDP client/server implemented with libuv.
 --
--- @module osc.udp-transport
+-- @module losc.plugins.udp-libuv
 -- @author David Granström
 -- @license MIT
 -- @copyright David Granström 2021
 
-local losc = require'osc.lib.losc'
-local Timetag = require'osc.lib.losc.timetag'
-local Pattern = require'osc.lib.losc.pattern'
-local Packet = require'osc.lib.losc.packet'
-local uv = vim.loop
+local uv = require'luv'
+
+local relpath = (...):gsub('%.[^%.]+$', '')
+relpath = (relpath):gsub('%.[^%.]+$', '')
+local Timetag = require(relpath .. '.timetag')
+local Pattern = require(relpath .. '.pattern')
+local Packet = require(relpath .. '.packet')
 
 local M = {}
 M.__index = M
@@ -33,7 +59,6 @@ function M.new(options)
   local self = setmetatable({}, M)
   self.options = options or {}
   self.handle = uv.new_udp('inet')
-  print(vim.inspect(handle))
   assert(self.handle, 'Could not create UDP handle.')
   return self
 end
@@ -65,7 +90,6 @@ end
 function M:open(host, port)
   host = host or self.options.recvAddr
   port = port or self.options.recvPort
-  print(host, port)
   self.handle:bind(host, port, {reuseaddr=true})
   self.handle:recv_start(function(err, data, addr)
     assert(not err, err)
@@ -76,6 +100,7 @@ function M:open(host, port)
   end)
   -- updated if port 0 is passed in as default (chooses a random port)
   self.options.recvPort = self.handle:getsockname().port
+  uv.run()
 end
 
 --- Close UDP server.
@@ -84,6 +109,7 @@ function M:close()
   if not self.handle:is_closing() then
     self.handle:close()
   end
+  uv.walk(uv.close)
 end
 
 --- Send a OSC packet.
