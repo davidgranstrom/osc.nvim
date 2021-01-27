@@ -31,7 +31,7 @@ SOFTWARE.
 -- @module losc.packet
 -- @author David Granström
 -- @license MIT
--- @copyright David Granström 2020
+-- @copyright David Granström 2021
 
 local relpath = (...):gsub('%.[^%.]+$', '')
 local Message = require(relpath .. '.message')
@@ -63,7 +63,7 @@ function Packet.validate(packet)
   end
 end
 
---- Pack a bundle or message to a byte string.
+--- Pack a Bundle or Message.
 -- @param tbl The table to pack.
 -- @return OSC data packet (byte string).
 function Packet.pack(tbl)

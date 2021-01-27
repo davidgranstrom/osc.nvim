@@ -25,6 +25,8 @@ SOFTWARE.
 -------------------------------------------------
 -- UDP client/server implemented using luasocket.
 --
+-- These methods should be called from the main `losc` API.
+--
 -- @module losc.plugins.udp-socket
 -- @author David Granström
 -- @license MIT
@@ -33,7 +35,7 @@ SOFTWARE.
 local socket = require'socket'
 
 local relpath = (...):gsub('%.[^%.]+$', '')
-relpath = (relpath):gsub('%.[^%.]+$', '')
+relpath = relpath:gsub('%.[^%.]+$', '')
 local Timetag = require(relpath .. '.timetag')
 local Pattern = require(relpath .. '.pattern')
 local Packet = require(relpath .. '.packet')
@@ -54,6 +56,7 @@ M.precision = 1000
 --   sendPort = 9000,
 --   recvAddr = '127.0.0.1',
 --   recvPort = 8000,
+--   ignore_late = true, -- ignore late bundles
 -- }
 function M.new(options)
   local self = setmetatable({}, M)
@@ -76,7 +79,7 @@ end
 
 --- Schedule a OSC method for dispatch.
 --
--- *This plugin does not support scheduled bundles, timestamps will be ignored.*
+-- *This plugin does not support scheduled bundles - timestamps will be ignored.*
 -- @tparam number timestamp When to schedule the bundle.
 -- @tparam function handler The OSC handler to call.
 function M:schedule(timestamp, handler) -- luacheck: ignore
@@ -113,8 +116,8 @@ end
 
 --- Send a OSC packet.
 -- @tparam table packet The packet to send.
--- @tparam string address The IP address to send to.
--- @tparam number port The port to send to.
+-- @tparam[opt] string address The IP address to send to.
+-- @tparam[opt] number port The port to send to.
 function M:send(packet, address, port)
   address = address or self.options.sendAddr
   address = socket.dns.toip(address)
