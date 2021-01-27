@@ -33,7 +33,6 @@ function M.new(options)
   local self = setmetatable({}, M)
   self.options = options or {}
   self.handle = uv.new_udp('inet')
-  print(vim.inspect(handle))
   assert(self.handle, 'Could not create UDP handle.')
   return self
 end
@@ -51,27 +50,33 @@ end
 -- @tparam number timestamp When to schedule the bundle.
 -- @tparam function handler The OSC handler to call.
 function M:schedule(timestamp, handler) -- luacheck: ignore
-  local timer = uv.new_timer()
   timestamp = math.max(0, timestamp)
-  timer:start(timestamp, 0, function()
+  if timestamp > 0 then
+    local timer = uv.new_timer()
+    timer:start(timestamp, 0, handler)
+  else
     handler()
-  end)
+  end
 end
 
 --- Start UDP server.
--- This function is blocking.
--- @tparam string host IP address (e.g. 'localhost').
+-- @tparam string host IP address (e.g. '127.0.0.1').
 -- @tparam number port The port to listen on.
 function M:open(host, port)
+  if self.handle then
+    return
+  end
   host = host or self.options.recvAddr
   port = port or self.options.recvPort
-  print(host, port)
   self.handle:bind(host, port, {reuseaddr=true})
   self.handle:recv_start(function(err, data, addr)
     assert(not err, err)
     if data then
       self.remote_info = addr
-      Pattern.dispatch(data, self)
+      local ok, errormsg = pcall(Pattern.dispatch, data, self)
+      if not ok then
+        print(errormsg)
+      end
     end
   end)
   -- updated if port 0 is passed in as default (chooses a random port)
@@ -84,6 +89,7 @@ function M:close()
   if not self.handle:is_closing() then
     self.handle:close()
   end
+  self.handle = nil
 end
 
 --- Send a OSC packet.
@@ -94,7 +100,7 @@ function M:send(packet, address, port)
   address = address or self.options.sendAddr
   port = port or self.options.sendPort
   packet = assert(Packet.pack(packet))
-  self.handle:udp_try_send(packet, address, port)
+  self.handle:try_send(packet, address, port)
 end
 
 return M
