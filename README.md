@@ -98,7 +98,9 @@ local on_keystroke = function(k)
 end
 
 function M.enable()
-  M.id = vim.register_keystroke_callback(on_keystroke)
+  if not M.id then
+    M.id = vim.register_keystroke_callback(on_keystroke)
+  end
 end
 
 function M.disable()
