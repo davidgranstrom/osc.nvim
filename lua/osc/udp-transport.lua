@@ -63,9 +63,6 @@ end
 -- @tparam string host IP address (e.g. '127.0.0.1').
 -- @tparam number port The port to listen on.
 function M:open(host, port)
-  if self.handle then
-    return
-  end
   host = host or self.options.recvAddr
   port = port or self.options.recvPort
   self.handle:bind(host, port, {reuseaddr=true})
